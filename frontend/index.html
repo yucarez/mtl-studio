@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MTL Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <h1 class="brand">MTL Studio</h1>
+  <div class="langpair" role="group" aria-label="Languages">
+    <label class="sr" for="src">Translate from</label>
+    <select id="src"></select>
+    <button id="swap" class="icon-btn" type="button" title="Swap languages" aria-label="Swap languages">⇄</button>
+    <label class="sr" for="tgt">Translate to</label>
+    <select id="tgt"></select>
+  </div>
+  <div class="engine-note" id="engineNote"></div>
+  <button id="openSettings" class="btn ghost" type="button" aria-controls="settings" aria-expanded="false">Settings</button>
+</header>
+
+<div id="notices" class="notices" role="status"></div>
+
+<main class="workbench">
+  <section class="panel-drop" id="drop" tabindex="0" aria-label="Add images">
+    <input id="fileInput" type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" multiple hidden>
+    <div class="drop-inner">
+      <p class="drop-title">Drop pages here</p>
+      <p class="drop-sub">PNG, JPG or WEBP, as many as you like. Pages are processed in filename order so a chapter keeps its context.</p>
+      <button class="btn primary" id="pick" type="button">Choose files</button>
+    </div>
+  </section>
+
+  <section class="queue" aria-label="Batch queue">
+    <div class="queue-bar">
+      <p class="queue-count" id="queueCount">No pages yet</p>
+      <div class="queue-actions">
+        <button class="btn primary" id="startBtn" type="button" disabled>Translate</button>
+        <button class="btn" id="retryFailedBtn" type="button" hidden>Retry failed</button>
+        <button class="btn" id="zipBtn" type="button" disabled>Download ZIP</button>
+        <button class="btn ghost" id="clearBtn" type="button" hidden>Clear list</button>
+      </div>
+    </div>
+    <ol class="grid" id="grid"></ol>
+    <p class="empty" id="empty">Your pages will appear here. Each one shows where it is in the pipeline, and anything that needs a second look.</p>
+  </section>
+</main>
+
+<!-- settings drawer -->
+<aside class="drawer" id="settings" aria-hidden="true" aria-labelledby="settingsTitle">
+  <div class="drawer-head">
+    <h2 id="settingsTitle">Settings</h2>
+    <button class="icon-btn" id="closeSettings" type="button" aria-label="Close settings">✕</button>
+  </div>
+  <form id="settingsForm" class="settings" onsubmit="return false">
+    <fieldset>
+      <legend>Engines</legend>
+      <label>Translator <select name="translator"></select></label>
+      <label>Text recognition <select name="ocr_engine">
+        <option value="auto">Automatic (best available)</option><option value="manga-ocr">manga-ocr (Japanese)</option>
+        <option value="paddle">PaddleOCR</option><option value="easyocr">EasyOCR</option></select></label>
+      <label>Text detection <select name="detector">
+        <option value="auto">Automatic</option><option value="paddle">PaddleOCR</option><option value="easyocr">EasyOCR</option></select></label>
+      <label class="check"><input type="checkbox" name="use_page_context"> Show the whole page to the AI translator for context</label>
+    </fieldset>
+    <fieldset>
+      <legend>Layout</legend>
+      <label>Content <select name="content_type">
+        <option value="auto">Detect automatically</option><option value="manga">Manga</option><option value="comic">Comic</option>
+        <option value="webtoon">Webtoon / manhwa</option><option value="screenshot">Screenshot / UI</option><option value="document">Scan / document</option></select></label>
+      <label>Reading direction <select name="reading_direction">
+        <option value="auto">Detect automatically</option><option value="rtl">Right to left (manga)</option><option value="ltr">Left to right</option></select></label>
+      <label>Sound effects <select name="sfx">
+        <option value="skip">Leave untouched</option><option value="translate">Translate</option></select></label>
+      <label>Letter case <select name="text_case">
+        <option value="as_is">As translated</option><option value="upper">All capitals (comic style)</option></select></label>
+      <label>Font <select name="font"></select></label>
+      <label>Follow tilted text up to <output id="tiltOut">30°</output>
+        <input type="range" name="follow_tilt_max" min="0" max="40" step="5"></label>
+      <p class="hint">Steeper text, vertical columns and sideways text are always lettered level, so nothing comes out sideways or upside down.</p>
+      <label>Smallest font <input type="number" name="min_font_px" min="6" max="40"> px</label>
+    </fieldset>
+    <fieldset>
+      <legend>Quality checks</legend>
+      <label>When a translation will not fit <select name="on_uncertain">
+        <option value="keep_original">Keep the original text and flag it</option>
+        <option value="best_effort">Letter it smaller and flag it</option></select></label>
+      <label class="check"><input type="checkbox" name="strict_verify"> Re-read lettered text to confirm it is legible and upright</label>
+      <label class="check"><input type="checkbox" name="residual_check"> Scan cleaned areas for leftover original text</label>
+      <label class="check"><input type="checkbox" name="auto_rotate_pages"> Straighten pages that were scanned sideways</label>
+    </fieldset>
+    <fieldset>
+      <legend>Output</legend>
+      <label>File format <select name="output_format">
+        <option value="png">PNG (lossless)</option><option value="same">Same as the original</option></select></label>
+    </fieldset>
+    <fieldset>
+      <legend>Translation notes</legend>
+      <label>Glossary <textarea name="glossary" rows="4" placeholder="One per line, e.g.&#10;ナルト = Naruto&#10;先輩 = senpai"></textarea></label>
+      <label>Instructions for the AI translator <textarea name="instructions" rows="3" placeholder="e.g. Keep honorifics. Casual tone for the main character."></textarea></label>
+    </fieldset>
+    <p class="hint">Settings apply to the next pages you translate and to retries.</p>
+  </form>
+</aside>
+<div class="scrim" id="scrim" hidden></div>
+
+<!-- viewer -->
+<div class="viewer" id="viewer" role="dialog" aria-modal="true" aria-labelledby="viewerTitle" hidden>
+  <div class="viewer-head">
+    <button class="icon-btn" id="prevPage" type="button" aria-label="Previous page">‹</button>
+    <h2 id="viewerTitle">Page</h2>
+    <button class="icon-btn" id="nextPage" type="button" aria-label="Next page">›</button>
+    <div class="modes" role="radiogroup" aria-label="View">
+      <button type="button" role="radio" data-mode="compare" aria-checked="true">Compare</button>
+      <button type="button" role="radio" data-mode="original" aria-checked="false">Original</button>
+      <button type="button" role="radio" data-mode="result" aria-checked="false">Translated</button>
+      <button type="button" role="radio" data-mode="regions" aria-checked="false">Regions</button>
+    </div>
+    <button class="btn ghost" id="zoomBtn" type="button">Actual size</button>
+    <a class="btn" id="dlOne" download>Download</a>
+    <button class="icon-btn" id="closeViewer" type="button" aria-label="Close">✕</button>
+  </div>
+  <div class="viewer-body">
+    <div class="stage" id="stage">
+      <div class="compare" id="compare">
+        <img id="imgA" alt="Original page">
+        <div class="clip" id="clip"><img id="imgB" alt="Translated page"></div>
+        <div class="handle" id="handle" role="slider" tabindex="0" aria-label="Compare position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50"></div>
+      </div>
+    </div>
+    <aside class="regions" aria-label="Text regions">
+      <div class="regions-head">
+        <h3>Text regions</h3>
+        <p class="meta" id="pageMeta"></p>
+      </div>
+      <div id="pageIssues"></div>
+      <ol id="regionList" class="region-list"></ol>
+      <div class="regions-foot">
+        <button class="btn primary" id="rerenderBtn" type="button" disabled>Re-letter edited regions</button>
+        <button class="btn" id="retryOneBtn" type="button">Translate this page again</button>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>

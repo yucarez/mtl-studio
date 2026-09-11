@@ -1,0 +1,11 @@
+# ---- OCR + inpainting models (install at least one OCR engine) ----
+# PaddleOCR 3.x: detection + recognition for zh/ja/en (+ korean/latin/cyrillic/thai models)
+# CPU wheel shown; for NVIDIA GPUs install paddlepaddle-gpu per https://www.paddlepaddle.org.cn/install
+paddlepaddle>=3.0
+paddleocr>=3.1,<4
+# Best Japanese manga OCR (vertical text, furigana-heavy bubbles)
+manga-ocr>=0.1.14
+# LaMa content-aware inpainting for screentone / textures / artwork
+simple-lama-inpainting>=0.1.2
+# Optional alternative/fallback engine:
+# easyocr>=1.7
